@@ -8,13 +8,15 @@ Provides tools for searching drugs by name and indication, focusing on BLA/NDA a
 
 import asyncio
 import json
+import os
 from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
-from mcp.server.models import InitializeResult
+from mcp.server.models import InitializationOptions
 import logging
 
-from fda_client import FDAClient
-from drug_processor import DrugProcessor
+from utils.fda_client import FDAClient
+from utils.drug_processor import DrugProcessor
+from utils.config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,8 +26,12 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("FDA Drugs MCP Server")
 
 # Initialize FDA client and processor
-fda_client = FDAClient()
+# API key can be set via environment variable FDA_API_KEY or uses default from config
+api_key = os.getenv('FDA_API_KEY')
+fda_client = FDAClient(api_key=api_key)
 drug_processor = DrugProcessor()
+
+logger.info(f"FDA Drugs MCP Server initialized with API key: {'***' + Config.get_api_key()[-4:] if Config.get_api_key() else 'None'}")
 
 @mcp.tool()
 def search_drug_by_name(
@@ -250,10 +256,9 @@ async def main():
         await mcp.run(
             read_stream,
             write_stream,
-            InitializeResult(
-                protocolVersion="2024-11-05",
-                capabilities=mcp.get_capabilities(),
-                serverInfo=mcp.get_server_info(),
+            InitializationOptions(
+                "FDA Drugs MCP Server",
+                "1.0.0"
             ),
         )
 

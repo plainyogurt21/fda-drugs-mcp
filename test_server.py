@@ -8,9 +8,9 @@ Simple tests to verify the server components work correctly.
 import sys
 import json
 import traceback
-from fda_client import FDAClient
-from drug_processor import DrugProcessor
-from utils import setup_logging
+from utils.fda_client import FDAClient
+from utils.drug_processor import DrugProcessor
+from utils.utils import setup_logging
 
 def test_fda_client():
     """Test FDA API client functionality."""
@@ -104,10 +104,10 @@ def test_imports():
     
     try:
         # Test all main imports
-        from fda_client import FDAClient
-        from drug_processor import DrugProcessor
-        from config import Config
-        from utils import setup_logging, clean_text
+        from utils.fda_client import FDAClient
+        from utils.drug_processor import DrugProcessor
+        from utils.config import Config
+        from utils.utils import setup_logging, clean_text
         
         print("  All imports successful")
         return True

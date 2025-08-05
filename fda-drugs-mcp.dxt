@@ -1,0 +1,387 @@
+{
+  "name": "fda-drugs-mcp",
+  "display_name": "FDA Drugs MCP Server",
+  "version": "1.0.0",
+  "description": "MCP server for accessing FDA drug data through OpenFDA API",
+  "long_description": "A comprehensive Model Context Protocol (MCP) server that enables AI assistants to access FDA drug data through the OpenFDA API. Features include searching drugs by name and indication, retrieving detailed drug information, finding similar drugs, and accessing application history. Focuses on BLA/NDA approved drugs by default.",
+  "author": {
+    "name": "FDA Drugs MCP Team",
+    "email": "support@example.com",
+    "url": "https://github.com/yourusername/fda-drugs-mcp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fda-drugs-mcp.git"
+  },
+  "homepage": "https://github.com/yourusername/fda-drugs-mcp",
+  "documentation": "https://github.com/yourusername/fda-drugs-mcp/blob/main/README.md",
+  "support": "https://github.com/yourusername/fda-drugs-mcp/issues",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "fda",
+    "drugs",
+    "pharmaceuticals",
+    "medical",
+    "healthcare",
+    "drug-approval",
+    "medications",
+    "bla",
+    "nda",
+    "openfda"
+  ],
+  "categories": [
+    "medical",
+    "data-access",
+    "healthcare"
+  ],
+  "type": "mcp-server",
+  "runtime": {
+    "type": "python",
+    "version": ">=3.8",
+    "entry_point": "server.py"
+  },
+  "dependencies": {
+    "mcp": ">=1.0.0",
+    "requests": ">=2.31.0",
+    "fastmcp": ">=0.2.0",
+    "pydantic": ">=2.0.0"
+  },
+  "dev_dependencies": {
+    "pytest": ">=7.0.0",
+    "pytest-asyncio": ">=0.21.0"
+  },
+  "configuration": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fda_api_key": {
+          "type": "string",
+          "description": "OpenFDA API key for increased rate limits and reliability",
+          "default": "",
+          "pattern": "^[a-zA-Z0-9]{40}$"
+        },
+        "rate_limit_delay": {
+          "type": "number",
+          "description": "Delay between API requests in seconds",
+          "default": 0.1,
+          "minimum": 0.05,
+          "maximum": 5.0
+        },
+        "default_search_limit": {
+          "type": "integer",
+          "description": "Default number of search results to return",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 100
+        },
+        "include_generics_default": {
+          "type": "boolean",
+          "description": "Whether to include ANDA generics by default",
+          "default": false
+        },
+        "log_level": {
+          "type": "string",
+          "description": "Logging level",
+          "default": "INFO",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        }
+      }
+    },
+    "example": {
+      "fda_api_key": "mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl",
+      "rate_limit_delay": 0.1,
+      "default_search_limit": 50,
+      "include_generics_default": false,
+      "log_level": "INFO"
+    },
+    "environment_variables": {
+      "FDA_API_KEY": {
+        "description": "OpenFDA API key for authenticated requests",
+        "required": false,
+        "default": "mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "search_drug_by_name",
+      "description": "Search for drugs by brand or generic name",
+      "category": "search",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "drug_name": {
+            "type": "string",
+            "description": "Brand or generic name to search for"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return",
+            "default": 50,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "include_generics": {
+            "type": "boolean",
+            "description": "Whether to include ANDA generics",
+            "default": false
+          }
+        },
+        "required": ["drug_name"]
+      },
+      "examples": [
+        {
+          "name": "Search for aspirin",
+          "parameters": {
+            "drug_name": "aspirin",
+            "limit": 10
+          }
+        },
+        {
+          "name": "Search for ibuprofen including generics",
+          "parameters": {
+            "drug_name": "ibuprofen",
+            "limit": 20,
+            "include_generics": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "search_drug_by_indication",
+      "description": "Search for drugs by medical indication or condition",
+      "category": "search",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "indication": {
+            "type": "string",
+            "description": "Medical condition or indication to search for"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return",
+            "default": 50,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "include_generics": {
+            "type": "boolean",
+            "description": "Whether to include ANDA generics",
+            "default": false
+          }
+        },
+        "required": ["indication"]
+      },
+      "examples": [
+        {
+          "name": "Find drugs for hypertension",
+          "parameters": {
+            "indication": "hypertension",
+            "limit": 15
+          }
+        },
+        {
+          "name": "Search for diabetes medications",
+          "parameters": {
+            "indication": "diabetes",
+            "limit": 25
+          }
+        }
+      ]
+    },
+    {
+      "name": "get_drug_details",
+      "description": "Get comprehensive details for a specific drug using its set ID",
+      "category": "details",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "set_id": {
+            "type": "string",
+            "description": "The FDA set ID for the drug",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          }
+        },
+        "required": ["set_id"]
+      },
+      "examples": [
+        {
+          "name": "Get detailed information for a drug",
+          "parameters": {
+            "set_id": "12345678-1234-1234-1234-123456789012"
+          }
+        }
+      ]
+    },
+    {
+      "name": "search_similar_drugs",
+      "description": "Find drugs similar to a reference drug based on mechanism of action or indication",
+      "category": "analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reference_drug": {
+            "type": "string",
+            "description": "Name of the reference drug"
+          },
+          "similarity_type": {
+            "type": "string",
+            "description": "Type of similarity to search for",
+            "enum": ["mechanism", "indication"],
+            "default": "mechanism"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": ["reference_drug"]
+      },
+      "examples": [
+        {
+          "name": "Find drugs with similar mechanism to aspirin",
+          "parameters": {
+            "reference_drug": "aspirin",
+            "similarity_type": "mechanism",
+            "limit": 15
+          }
+        },
+        {
+          "name": "Find drugs with similar indications to metformin",
+          "parameters": {
+            "reference_drug": "metformin",
+            "similarity_type": "indication",
+            "limit": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "get_drug_application_history",
+      "description": "Get application history and approval details for a drug application",
+      "category": "regulatory",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "application_number": {
+            "type": "string",
+            "description": "FDA application number (BLA, NDA, or ANDA)",
+            "pattern": "^[BLA|ANDA|NDA]{3,4}[0-9]{6}$"
+          }
+        },
+        "required": ["application_number"]
+      },
+      "examples": [
+        {
+          "name": "Get history for NDA application",
+          "parameters": {
+            "application_number": "NDA123456"
+          }
+        },
+        {
+          "name": "Get history for BLA application",
+          "parameters": {
+            "application_number": "BLA125123"
+          }
+        }
+      ]
+    }
+  ],
+  "data_sources": [
+    {
+      "name": "OpenFDA Drug Labels",
+      "url": "https://api.fda.gov/drug/label.json",
+      "description": "Structured Product Labeling (SPL) data for prescription and OTC drugs"
+    },
+    {
+      "name": "OpenFDA NDC Directory",
+      "url": "https://api.fda.gov/drug/ndc.json",
+      "description": "National Drug Code directory of marketed drugs"
+    },
+    {
+      "name": "OpenFDA Drugs@FDA",
+      "url": "https://api.fda.gov/drug/drugsfda.json",
+      "description": "FDA application and approval history data"
+    }
+  ],
+  "capabilities": [
+    "drug_search",
+    "indication_search", 
+    "detailed_drug_info",
+    "similarity_analysis",
+    "regulatory_history",
+    "bla_nda_filtering",
+    "structured_responses",
+    "rate_limiting",
+    "error_handling"
+  ],
+  "deployment": {
+    "docker": {
+      "image": "fda-drugs-mcp",
+      "dockerfile": "Dockerfile",
+      "ports": ["8000:8000"],
+      "environment": {
+        "LOG_LEVEL": "INFO"
+      }
+    },
+    "smithery": {
+      "config_file": "smithery.yaml",
+      "type": "stdio"
+    }
+  },
+  "file_structure": {
+    "base": [
+      "server.py",
+      "requirements.txt", 
+      "Dockerfile",
+      "smithery.yaml",
+      "manifest.json",
+      "README.md",
+      "test_server.py",
+      "fda-drugs-mcp.dxt"
+    ],
+    "utils": [
+      "utils/__init__.py",
+      "utils/fda_client.py",
+      "utils/drug_processor.py", 
+      "utils/config.py",
+      "utils/utils.py"
+    ],
+    "documentation": [
+      "documentation/openfda_drug_endpoints.md",
+      "documentation/drugs_fda_fields.yaml",
+      "documentation/label_fields.yaml",
+      "documentation/NDC_fields.yaml"
+    ]
+  },
+  "testing": {
+    "test_file": "test_server.py",
+    "test_command": "python test_server.py",
+    "coverage": ["imports", "fda_client", "drug_processor", "end_to_end"]
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "python_versions": ["3.8", "3.9", "3.10", "3.11", "3.12"],
+    "mcp_protocol": "2024-11-05"
+  },
+  "performance": {
+    "rate_limit": "10 requests/second",
+    "response_time": "<2 seconds typical",
+    "memory_usage": "<100MB typical",
+    "concurrent_requests": "Limited by OpenFDA API"
+  },
+  "security": {
+    "api_keys": "OpenFDA API key recommended for higher rate limits and reliability",
+    "api_key_handling": "API key stored in environment variables or config, not logged",
+    "data_privacy": "No personal data stored, only FDA public drug information accessed",
+    "rate_limiting": "Built-in compliance with OpenFDA limits",
+    "https_only": "All API requests use HTTPS encryption",
+    "authentication": "API key passed as query parameter to OpenFDA endpoints"
+  }
+}

@@ -10,21 +10,25 @@ import re
 import time
 from typing import List, Dict, Any, Optional
 import logging
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
 class FDAClient:
     """Client for accessing FDA drug data through OpenFDA API."""
     
-    def __init__(self):
+    def __init__(self, api_key: Optional[str] = None):
         """Initialize the FDA client with base URLs and configuration."""
-        self.base_urls = {
-            'label': 'https://api.fda.gov/drug/label.json',
-            'ndc': 'https://api.fda.gov/drug/ndc.json',
-            'drugsfda': 'https://api.fda.gov/drug/drugsfda.json'
-        }
-        self.default_limit = 100
-        self.rate_limit_delay = 0.1  # 100ms between requests
+        self.config = Config.get_api_config()
+        self.base_urls = self.config['endpoints']
+        self.default_limit = self.config['max_limit']
+        self.rate_limit_delay = self.config['rate_limit_delay']
+        self.timeout = self.config['timeout']
+        
+        # Set API key if provided, otherwise use config default
+        if api_key:
+            Config.set_api_key(api_key)
+        self.api_key = Config.get_api_key()
         
     def _make_request(self, url: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -38,10 +42,14 @@ class FDAClient:
             API response data
         """
         try:
+            # Add API key as first parameter
+            if self.api_key:
+                params = {'api_key': self.api_key, **params}
+            
             # Add rate limiting
             time.sleep(self.rate_limit_delay)
             
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=self.timeout)
             response.raise_for_status()
             
             data = response.json()
