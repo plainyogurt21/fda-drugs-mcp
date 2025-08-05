@@ -326,6 +326,7 @@
       "dockerfile": "Dockerfile",
       "ports": ["8000:8000"],
       "environment": {
+        "FDA_API_KEY": "mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl",
         "LOG_LEVEL": "INFO"
       }
     },

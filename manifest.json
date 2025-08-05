@@ -22,7 +22,9 @@
     "mcp_config": {
       "command": "/Users/adusubramanian/fda-drugs-mcp/.venv/bin/python",
       "args": ["${__dirname}/server.py"],
-      "env": {}
+      "env": {
+        "FDA_API_KEY": "mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl"
+      }
     }
   },
   "tools": [
