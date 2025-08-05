@@ -1,0 +1,9 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    description: No configuration required for FDA Drugs MCP Server
+  commandFunction: |-
+    (config) => ({ command: 'python', args: ['server.py'] })
+  exampleConfig: {}
+  

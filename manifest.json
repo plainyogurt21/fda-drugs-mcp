@@ -1,0 +1,71 @@
+{
+  "dxt_version": "0.1",
+  "name": "fda-drugs-mcp",
+  "display_name": "FDA Drugs MCP Server",
+  "version": "1.0.0",
+  "description": "MCP server for accessing FDA drug data through OpenFDA API",
+  "long_description": "A comprehensive Model Context Protocol (MCP) server that enables AI assistants to access FDA drug data through the OpenFDA API. Features include searching drugs by name and indication, retrieving detailed drug information, finding similar drugs, and accessing application history. Focuses on BLA/NDA approved drugs by default.",
+  "author": {
+    "name": "FDA Drugs MCP Team",
+    "url": "https://github.com/yourusername/fda-drugs-mcp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fda-drugs-mcp.git"
+  },
+  "homepage": "https://github.com/yourusername/fda-drugs-mcp",
+  "documentation": "https://github.com/yourusername/fda-drugs-mcp/blob/main/README.md",
+  "support": "https://github.com/yourusername/fda-drugs-mcp/issues",
+  "server": {
+    "type": "python",
+    "entry_point": "server.py",
+    "mcp_config": {
+      "command": "/Users/adusubramanian/fda-drugs-mcp/.venv/bin/python",
+      "args": ["${__dirname}/server.py"],
+      "env": {}
+    }
+  },
+  "tools": [
+    {
+      "name": "search_drug_by_name",
+      "description": "Search for drugs by brand or generic name"
+    },
+    {
+      "name": "search_drug_by_indication",
+      "description": "Search for drugs by medical indication or condition"
+    },
+    {
+      "name": "get_drug_details",
+      "description": "Get comprehensive details for a specific drug using its set ID"
+    },
+    {
+      "name": "search_similar_drugs",
+      "description": "Find drugs similar to a reference drug based on mechanism of action or indication"
+    },
+    {
+      "name": "get_drug_application_history",
+      "description": "Get application history and approval details for a drug application"
+    }
+  ],
+  "keywords": [
+    "mcp",
+    "fda",
+    "drugs",
+    "pharmaceuticals",
+    "medical",
+    "healthcare",
+    "drug-approval",
+    "medications",
+    "bla",
+    "nda",
+    "openfda"
+  ],
+  "license": "MIT",
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.8"
+    }
+  }
+}
