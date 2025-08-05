@@ -6,12 +6,9 @@ A Model Context Protocol server for accessing FDA drug data through OpenFDA API.
 Provides tools for searching drugs by name and indication, focusing on BLA/NDA approvals.
 """
 
-import asyncio
-import json
 import os
-from typing import Any, Dict, List, Optional
-from mcp.server.fastmcp import FastMCP
-from mcp.server.models import InitializationOptions
+from typing import Any, Dict
+from fastmcp import FastMCP
 import logging
 
 from utils.fda_client import FDAClient
@@ -248,19 +245,6 @@ def get_drug_application_history(
             "application_number": application_number
         }
 
-async def main():
-    """Main function to run the MCP server."""
-    from mcp.server.stdio import stdio_server
-    
-    async with stdio_server() as (read_stream, write_stream):
-        await mcp.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                "FDA Drugs MCP Server",
-                "1.0.0"
-            ),
-        )
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    # FastMCP handles the server initialization and running automatically
+    mcp.run()
