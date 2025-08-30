@@ -7,28 +7,68 @@ Provides tools for searching drugs by name and indication, focusing on BLA/NDA a
 """
 
 import os
+import uvicorn
 from typing import Any, Dict
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
+from starlette.middleware.cors import CORSMiddleware
 import logging
 
 from utils.fda_client import FDAClient
 from utils.drug_processor import DrugProcessor
 from utils.config import Config
+from middleware import SmitheryConfigMiddleware
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize the MCP server
-mcp = FastMCP("FDA Drugs MCP Server")
+mcp = FastMCP(name="FDA Drugs MCP Server")
 
-# Initialize FDA client and processor
-# API key can be set via environment variable FDA_API_KEY or uses default from config
-api_key = os.getenv('FDA_API_KEY')
-fda_client = FDAClient(api_key=api_key)
+# Store runtime configuration for stdio mode
+_runtime_config: Dict[str, Any] = {}
+
+
+def handle_config(config: dict):
+    """Handle configuration for backwards compatibility with stdio mode."""
+    global _runtime_config
+    _runtime_config = config or {}
+    if api_key := config.get("fda_api_key"):
+        Config.set_api_key(api_key)
+    if log_level := config.get("log_level"):
+        logging.getLogger().setLevel(log_level)
+
+
+def get_request_config() -> dict:
+    """Get configuration from current request context."""
+    try:
+        import contextvars
+
+        request = contextvars.copy_context().get("request")
+        if hasattr(request, "scope") and request.scope:
+            return request.scope.get("smithery_config", {})
+    except Exception:
+        pass
+    return _runtime_config
+
+
+def get_config_value(key: str, default=None):
+    """Get specific configuration value from request or runtime config."""
+    config = get_request_config()
+    return config.get(key, default)
+
+
+# Initialize drug processor
 drug_processor = DrugProcessor()
 
-logger.info(f"FDA Drugs MCP Server initialized with API key: {'***' + Config.get_api_key()[-4:] if Config.get_api_key() else 'None'}")
+
+def get_fda_client() -> FDAClient:
+    """Create an FDAClient using API key from configuration."""
+    api_key = get_config_value("fda_api_key", os.getenv("FDA_API_KEY"))
+    return FDAClient(api_key=api_key)
+
+
+logger.info("FDA Drugs MCP Server initialized")
 
 @mcp.tool()
 def search_drug_by_name(
@@ -49,7 +89,8 @@ def search_drug_by_name(
     """
     try:
         logger.info(f"Searching for drug: {drug_name}")
-        
+
+        fda_client = get_fda_client()
         # Search using FDA client
         raw_results = fda_client.search_by_name(drug_name, limit, include_generics)
         
@@ -94,7 +135,8 @@ def search_drug_by_indication(
     """
     try:
         logger.info(f"Searching for drugs by indication: {indication}")
-        
+
+        fda_client = get_fda_client()
         # Search using FDA client
         raw_results = fda_client.search_by_indication(indication, limit, include_generics)
         
@@ -135,7 +177,8 @@ def get_drug_details(
     """
     try:
         logger.info(f"Getting drug details for set_id: {set_id}")
-        
+
+        fda_client = get_fda_client()
         # Get details using FDA client
         raw_details = fda_client.get_drug_by_set_id(set_id)
         
@@ -175,7 +218,8 @@ def search_similar_drugs(
     """
     try:
         logger.info(f"Finding similar drugs to: {reference_drug}")
-        
+
+        fda_client = get_fda_client()
         # First get the reference drug details
         reference_results = fda_client.search_by_name(reference_drug, 1, False)
         if not reference_results:
@@ -224,7 +268,8 @@ def get_drug_application_history(
     """
     try:
         logger.info(f"Getting application history for: {application_number}")
-        
+
+        fda_client = get_fda_client()
         # Get application history using FDA client
         raw_history = fda_client.get_application_history(application_number)
         
@@ -245,6 +290,41 @@ def get_drug_application_history(
             "application_number": application_number
         }
 
+
+def main():
+    transport_mode = os.getenv("TRANSPORT", "stdio")
+
+    if transport_mode == "http":
+        print("FDA Drugs MCP Server starting in HTTP mode...")
+
+        app = mcp.streamable_http_app()
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["*"],
+            expose_headers=["mcp-session-id", "mcp-protocol-version"],
+            max_age=86400,
+        )
+        app = SmitheryConfigMiddleware(app)
+
+        port = int(os.environ.get("PORT", 8081))
+        print(f"Listening on port {port}")
+
+        uvicorn.run(app, host="0.0.0.0", port=port, log_level="debug")
+    else:
+        print("FDA Drugs MCP Server starting in stdio mode...")
+
+        handle_config(
+            {
+                "fda_api_key": os.getenv("FDA_API_KEY"),
+                "log_level": os.getenv("LOG_LEVEL"),
+            }
+        )
+
+        mcp.run()
+
+
 if __name__ == "__main__":
-    # FastMCP handles the server initialization and running automatically
-    mcp.run()
+    main()
