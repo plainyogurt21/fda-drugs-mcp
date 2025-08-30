@@ -1,5 +1,6 @@
 startCommand:
-  type: stdio
+  type: http
+  baseUrl: http://localhost:${PORT}
   configSchema:
     type: object
     description: Configuration for FDA Drugs MCP Server
@@ -13,17 +14,6 @@ startCommand:
         description: Logging level for the server
         enum: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         default: "INFO"
-  commandFunction: |-
-    (config) => ({ 
-      command: 'python', 
-      args: ['server.py'],
-      env: {
-        FDA_API_KEY: config.fda_api_key || 'mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl',
-        LOG_LEVEL: config.log_level || 'INFO'
-      }
-    })
-  exampleConfig: {
-    fda_api_key: "mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl",
+  exampleConfig:
+    fda_api_key: "mpORfvSB8yDvTm1hD4Ud1snpNSsDwCY6u2W7qpdl"
     log_level: "INFO"
-  }
-  
