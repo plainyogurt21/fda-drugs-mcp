@@ -21,6 +21,7 @@ from utils.fda_client import FDAClient
 from utils.drug_processor import DrugProcessor
 from utils.config import Config
 from utils.middleware import SmitheryConfigMiddleware
+from utils.patent_scraper import scrape_patent_info
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -294,10 +295,10 @@ def get_drug_application_history(
 ) -> Dict[str, Any]:
     """
     Get application history and approval details for a drug application.
-    
+
     Args:
         application_number: FDA application number (BLA, NDA, or ANDA)
-    
+
     Returns:
         Dictionary containing application history and details
     """
@@ -309,22 +310,60 @@ def get_drug_application_history(
 
         # Get application history using FDA client
         raw_history = client.get_application_history(application_number)
-        
+
         # Process and format history
         processed_history = drug_processor.process_application_history(raw_history)
-        
+
         return {
             "success": True,
             "application_number": application_number,
             "history": processed_history
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting application history for {application_number}: {str(e)}")
         return {
             "success": False,
             "error": str(e),
             "application_number": application_number
+        }
+
+@mcp.tool()
+def search_drug_patents(
+    application_number: str,
+    product_no: str = "004"
+) -> Dict[str, Any]:
+    """
+    Search for patent and exclusivity information for an NDA drug application.
+
+    Uses web scraping to retrieve real-time patent data from FDA Orange Book.
+
+    Args:
+        application_number: FDA NDA application number (e.g., "209637")
+        product_no: Product number (default: "004")
+
+    Returns:
+        Dictionary containing patent and exclusivity information:
+        - patents: List of patent records with expiration dates, use codes, etc.
+        - exclusivities: List of exclusivity records with codes and expiration dates
+    """
+    try:
+        logger.info(f"Searching patents for NDA {application_number}, Product {product_no}")
+
+        # Scrape patent information from FDA Orange Book
+        result = scrape_patent_info(application_number, product_no)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error searching patents for {application_number}: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "application_number": application_number,
+            "product_no": product_no,
+            "patents": [],
+            "exclusivities": []
         }
 
 def main():
