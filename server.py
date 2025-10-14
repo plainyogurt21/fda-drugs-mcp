@@ -22,6 +22,7 @@ from utils.drug_processor import DrugProcessor
 from utils.config import Config
 from utils.middleware import SmitheryConfigMiddleware
 from utils.patent_scraper import scrape_patent_info
+from utils.review_search import search_csv_for_drug
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -364,6 +365,92 @@ def search_drug_patents(
             "product_no": product_no,
             "patents": [],
             "exclusivities": []
+        }
+
+@mcp.tool()
+def search_drug_review_pdfs(
+    drug_name: str = None,
+    application_number: str = None,
+    set_id: str = None
+) -> Dict[str, Any]:
+    """
+    Search the drug reviews CSV for review PDF URLs by drug name, application number, or set ID.
+
+    Searches the drug_reviews.csv database for matching drugs and returns their review PDF URLs.
+    At least one search parameter must be provided.
+
+    Args:
+        drug_name: Drug name (brand or generic) - partial match, case-insensitive (optional)
+        application_number: FDA application number (BLA/NDA) - exact match (optional)
+        set_id: SPL Set ID - exact match (optional)
+
+    Returns:
+        Dictionary containing:
+        - success: bool
+        - query: dict of search parameters used
+        - total_results: int (number of matching drugs)
+        - results: List of dicts with drug info and review PDF URLs
+    """
+    try:
+        # Validate at least one parameter provided
+        if not drug_name and not application_number and not set_id:
+            return {
+                "success": False,
+                "error": "At least one search parameter (drug_name, application_number, or set_id) must be provided",
+                "query": {},
+                "total_results": 0,
+                "results": []
+            }
+
+        logger.info(f"Searching CSV for drug_name={drug_name}, application_number={application_number}, set_id={set_id}")
+
+        # Path to CSV
+        csv_path = os.path.join(os.path.dirname(__file__), "drug_reviews.csv")
+
+        # Search CSV
+        matches = search_csv_for_drug(
+            csv_path=csv_path,
+            drug_name=drug_name,
+            spl_set_id=set_id,
+            application_number=application_number
+        )
+
+        # Format results
+        results = []
+        for match in matches:
+            results.append({
+                "year": match.get("Year", "N/A"),
+                "brand_name": match.get("Brand Name", "N/A"),
+                "generic_name": match.get("Generic Name", "N/A"),
+                "application_number": match.get("Application Number", "N/A"),
+                "spl_set_id": match.get("SPL Set ID", "N/A"),
+                "review_document_url": match.get("Review Document URL", "N/A"),
+                "review_document_title": match.get("Review Document Title", "N/A")
+            })
+
+        return {
+            "success": True,
+            "query": {
+                "drug_name": drug_name,
+                "application_number": application_number,
+                "set_id": set_id
+            },
+            "total_results": len(results),
+            "results": results
+        }
+
+    except Exception as e:
+        logger.error(f"Error searching drug review PDFs: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "query": {
+                "drug_name": drug_name,
+                "application_number": application_number,
+                "set_id": set_id
+            },
+            "total_results": 0,
+            "results": []
         }
 
 def main():
