@@ -1,5 +1,7 @@
 # FDA Drugs MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@plainyogurt21/fda-drugs-mcp)](https://smithery.ai/server/@plainyogurt21/fda-drugs-mcp)
+
 A Model Context Protocol (MCP) server for accessing FDA drug data through the OpenFDA API.
 
 ## Features
@@ -44,6 +46,14 @@ A Model Context Protocol (MCP) server for accessing FDA drug data through the Op
   docker run -p 8081:8081 -e PORT=8081 fda-drugs-mcp
   npx @smithery/cli playground --port 8081
   ```
+
+### Installing via Smithery
+
+To install FDA Drugs MCP Server automatically via [Smithery](https://smithery.ai/server/@plainyogurt21/fda-drugs-mcp):
+
+```bash
+npx -y @smithery/cli install @plainyogurt21/fda-drugs-mcp
+```
 
 Config fields supported when launching via Smithery:
 - `fdaApiKey`: OpenFDA API key
