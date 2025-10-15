@@ -1,8 +1,8 @@
 import requests
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from .review_search import extract_pdfs_from_cfm_page
 
-def fetch_fda_review_link_for_setid(set_id: str) -> Dict[str, any]:
+def fetch_fda_review_link_for_setid(set_id: str) -> Dict[str, Any]:
     """Return review links and PDFs for a label set_id.
 
     Queries the OpenFDA Drugs@FDA endpoint to find review document URLs.

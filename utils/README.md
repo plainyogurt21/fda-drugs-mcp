@@ -11,9 +11,6 @@ Basic OpenFDA API client. Provides:
 ### `adcom_scraper.py`
 Scrapes Advisory Committee meeting materials (PDFs, titles, metadata).
 
-### `adcom_scraper_archive.py`
-Scrapes archived AdCom materials from Wayback (CSV export).
-
 ### `review_search.py`
 Searches review data and extracts review PDF links, plus CSV lookup helpers.
 
