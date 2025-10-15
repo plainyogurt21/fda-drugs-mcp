@@ -23,6 +23,8 @@ from utils.config import Config
 from utils.middleware import SmitheryConfigMiddleware
 from utils.patent_scraper import scrape_patent_info
 from utils.review_search import search_csv_for_drug
+from utils.adcom_scraper import search_advisory_committee_materials
+from utils.guidance_scraper import fetch_guidance_documents
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -451,6 +453,146 @@ def search_drug_review_pdfs(
             },
             "total_results": 0,
             "results": []
+        }
+
+@mcp.tool()
+def search_advisory_committee_materials_tool(
+    committee: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    limit: int = 100
+) -> Dict[str, Any]:
+    """
+    Search for FDA Advisory Committee meeting materials (PDFs).
+
+    Returns meeting information including dates, committee names, and PDF links with titles.
+
+    Args:
+        committee: Committee name to filter (case-insensitive partial match, e.g., "Cellular, Tissue, and Gene Therapies")
+        start_date: Filter meetings on or after this date (YYYY-MM-DD format)
+        end_date: Filter meetings on or before this date (YYYY-MM-DD format)
+        limit: Maximum number of meetings to process (default: 100)
+
+    Returns:
+        Dictionary containing:
+        - success: bool
+        - query: dict of search parameters
+        - total_meetings: int (number of meetings found)
+        - meetings: List of meeting objects with:
+            - date: Meeting date (YYYY-MM-DD)
+            - committee: Committee/center name
+            - title: Meeting title
+            - meeting_url: Full URL to meeting page
+            - materials: List of PDF materials with:
+                - title: PDF document title
+                - pdf_url: Full URL to download PDF
+                - file_size: File size string
+                - source: Document source (e.g., "FDA")
+    """
+    try:
+        logger.info(f"Searching advisory committee materials: committee={committee}, start_date={start_date}, end_date={end_date}, limit={limit}")
+
+        result = search_advisory_committee_materials(
+            committee=committee,
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error searching advisory committee materials: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "query": {
+                "committee": committee,
+                "start_date": start_date,
+                "end_date": end_date,
+                "limit": limit
+            },
+            "total_meetings": 0,
+            "meetings": []
+        }
+
+@mcp.tool()
+def search_guidance_documents(
+    center: str = None,
+    doc_type: str = None,
+    topic: str = None
+) -> Dict[str, Any]:
+    """
+    Search FDA guidance documents.
+
+    Fetches all guidance documents from FDA and optionally filters by center, type, or topic.
+
+    Args:
+        center: Filter by FDA center (e.g., "Center for Drug Evaluation and Research") - case-insensitive partial match
+        doc_type: Filter by document type ("Final" or "Draft")
+        topic: Filter by topic/keywords - case-insensitive partial match
+
+    Returns:
+        Dictionary containing:
+        - success: bool
+        - query: dict of search parameters
+        - total_results: int (number of matching documents)
+        - documents: List of guidance documents with:
+            - title: Document title
+            - link: URL to guidance document page
+            - pdf_link: Direct PDF download link
+            - date: Issue date
+            - type: "Final" or "Draft"
+            - center: FDA center/office
+            - docket_number: Docket number with link
+            - topics: Related topics
+            - regulated_product: Product category (Drugs, Biologics, Devices, etc.)
+    """
+    try:
+        logger.info(f"Searching guidance documents: center={center}, type={doc_type}, topic={topic}")
+
+        # Fetch all documents
+        all_docs = fetch_guidance_documents()
+
+        # Apply filters
+        filtered_docs = all_docs
+
+        if center:
+            center_lower = center.lower()
+            filtered_docs = [d for d in filtered_docs if center_lower in d.get('center', '').lower()]
+
+        if doc_type:
+            filtered_docs = [d for d in filtered_docs if d.get('type', '').lower() == doc_type.lower()]
+
+        if topic:
+            topic_lower = topic.lower()
+            filtered_docs = [d for d in filtered_docs
+                           if topic_lower in d.get('topics', '').lower()
+                           or topic_lower in d.get('title', '').lower()]
+
+        return {
+            "success": True,
+            "query": {
+                "center": center,
+                "doc_type": doc_type,
+                "topic": topic
+            },
+            "total_results": len(filtered_docs),
+            "documents": filtered_docs
+        }
+
+    except Exception as e:
+        logger.error(f"Error searching guidance documents: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "query": {
+                "center": center,
+                "doc_type": doc_type,
+                "topic": topic
+            },
+            "total_results": 0,
+            "documents": []
         }
 
 def main():
