@@ -1,0 +1,5 @@
+*.pyc
+utils/__pycache__/
+AGENTS.md
+CLAUDE.md
+utils/__pycache__/adcom_scraper.cpython-313.pyc

@@ -2,7 +2,6 @@
 Drug Data Processor
 
 Processes and cleans FDA API response data for consistent formatting.
-Based on patterns from the existing label_search.py processing functions.
 """
 
 import re

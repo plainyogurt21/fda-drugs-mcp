@@ -18,13 +18,13 @@ from starlette.middleware.cors import CORSMiddleware
 import logging
 
 from utils.fda_client import FDAClient
-from utils.drug_processor import DrugProcessor
-from utils.config import Config
-from utils.middleware import SmitheryConfigMiddleware
+from core.drug_processor import DrugProcessor
+from core.config import Config
+from middleware.smithery import SmitheryConfigMiddleware
 from utils.patent_scraper import scrape_patent_info
 from utils.review_search import search_csv_for_drug
 from utils.adcom_scraper import search_advisory_committee_materials
-from utils.guidance_scraper import fetch_guidance_documents
+from features.guidance import fetch_guidance_documents
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -407,7 +407,7 @@ def search_drug_review_pdfs(
         logger.info(f"Searching CSV for drug_name={drug_name}, application_number={application_number}, set_id={set_id}")
 
         # Path to CSV
-        csv_path = os.path.join(os.path.dirname(__file__), "drug_reviews.csv")
+        csv_path = os.path.join(os.path.dirname(__file__), "output_files", "Drug_reviews", "drug_reviews.csv")
 
         # Search CSV
         matches = search_csv_for_drug(

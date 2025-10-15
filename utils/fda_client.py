@@ -10,7 +10,7 @@ import re
 import time
 from typing import List, Dict, Any, Optional
 import logging
-from .config import Config
+from core.config import Config
 
 logger = logging.getLogger(__name__)
 

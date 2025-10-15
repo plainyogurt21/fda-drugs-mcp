@@ -66,7 +66,10 @@ def save_guidance_documents():
     print("Fetching FDA guidance documents...")
     docs = fetch_guidance_documents()
 
-    output_file = 'fda_guidance.json'
+    import os
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'output_files', 'Guidance')
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'fda_guidance.json')
     with open(output_file, 'w') as f:
         json.dump(docs, f, indent=2)
 

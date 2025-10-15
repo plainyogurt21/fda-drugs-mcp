@@ -1,7 +1,6 @@
 import requests
 from typing import Optional, Dict, List
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from .review_search import extract_pdfs_from_cfm_page
 
 def fetch_fda_review_link_for_setid(set_id: str) -> Dict[str, any]:
     """Return review links and PDFs for a label set_id.
@@ -61,32 +60,5 @@ def fetch_fda_review_link_for_setid(set_id: str) -> Dict[str, any]:
     return {"application_number": application_number, "review_url": review_url, "pdf_urls": pdf_urls}
 
 def _extract_pdfs_from_cfm_page(cfm_url: str) -> List[str]:
-    """Scrape a .cfm FDA page and extract review PDF URLs only.
-
-    Only extracts PDFs whose link text contains 'Review' (e.g., Product Quality Review,
-    Integrated Review, etc.). Excludes non-review documents like Approval Letters,
-    Labeling, Administrative docs, etc.
-
-    Args:
-        cfm_url: URL to a .cfm page (e.g., TOC page)
-
-    Returns:
-        List of absolute PDF URLs for review documents only
-    """
-    pdf_urls = []
-    try:
-        resp = requests.get(cfm_url, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.content, 'html.parser')
-
-        for link in soup.find_all('a', href=True):
-            href = link['href']
-            link_text = link.get_text(strip=True).lower()
-            if href.lower().endswith('.pdf') and 'review' in link_text:
-                absolute_url = urljoin(cfm_url, href)
-                if absolute_url not in pdf_urls:
-                    pdf_urls.append(absolute_url)
-    except requests.RequestException:
-        pass
-
-    return pdf_urls
+    """Compatibility wrapper that reuses review_search logic."""
+    return extract_pdfs_from_cfm_page(cfm_url)

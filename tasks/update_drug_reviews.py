@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from utils.label_search import fetch_fda_review_link_for_setid
 import time
 
-CSV_PATH = "drug_reviews.csv"
+CSV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output_files", "Drug_reviews", "drug_reviews.csv")
 YEARS_TO_CHECK = 1  # Only check drugs approved in last year
 
 def read_csv_data():

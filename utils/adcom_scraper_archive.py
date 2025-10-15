@@ -11,6 +11,7 @@ import re
 from urllib.parse import urljoin
 from datetime import datetime
 import time
+import os
 
 BASE_URL = "https://wayback.archive-it.org/7993/20170403184741/https://www.fda.gov/AdvisoryCommittees/CommitteesMeetingMaterials/Drugs/default.htm"
 ARCHIVE_PREFIX = "https://wayback.archive-it.org"
@@ -151,7 +152,9 @@ def main():
             continue
 
     # Save to CSV
-    output_file = 'adcom_documents_archive.csv'
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'output_files', 'adcom_archive')
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'adcom_documents_archive.csv')
     print(f"\nSaving {len(all_documents)} documents to {output_file}...")
 
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
