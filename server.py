@@ -16,6 +16,7 @@ import uvicorn
 from mcp.server.fastmcp import FastMCP
 from starlette.middleware.cors import CORSMiddleware
 import logging
+from starlette.responses import JSONResponse, PlainTextResponse
 
 from utils.fda_client import FDAClient
 from core.drug_processor import DrugProcessor
@@ -601,8 +602,45 @@ def main():
     if transport_mode == "http":
         print("FDA Drugs MCP Server starting in HTTP mode...")
 
-        # Create HTTP app
-        app = mcp.streamable_http_app()
+        # Create HTTP app (streaming) and add broad compatibility wrapper
+        inner_app = mcp.streamable_http_app()
+
+        class HTTPCompatApp:
+            """ASGI wrapper to improve compatibility with MCP HTTP clients.
+
+            - Health endpoints at `/`, `/health`, `/status` (GET)
+            - Rewrite POST paths to root so clients posting to arbitrary paths still work
+            """
+
+            def __init__(self, app):
+                self.app = app
+
+            async def __call__(self, scope, receive, send):
+                if scope.get("type") != "http":
+                    return await self.app(scope, receive, send)
+
+                method = scope.get("method", "").upper()
+                path = scope.get("path", "/")
+
+                # Lightweight health response
+                if method == "GET" and path in ("/", "/health", "/status"):
+                    data = {
+                        "name": Config.SERVER_NAME,
+                        "version": Config.SERVER_VERSION,
+                        "status": "ok",
+                    }
+                    response = JSONResponse(data)
+                    await response(scope, receive, send)
+                    return
+
+                # Ensure POSTs hit the MCP root route
+                if method == "POST" and path not in ("/", "/mcp"):
+                    scope = dict(scope)
+                    scope["path"] = "/"
+
+                return await self.app(scope, receive, send)
+
+        app = HTTPCompatApp(inner_app)
 
         # CORS for cross-origin requests
         app.add_middleware(
