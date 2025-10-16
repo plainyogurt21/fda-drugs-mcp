@@ -32,7 +32,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize the MCP server
-mcp = FastMCP(name="FDA Drugs MCP Server")
+mcp = FastMCP(
+    name="FDA Drugs MCP Server",
+    streamable_http_path="/",
+)
 
 # Initialize processor (stateless)
 drug_processor = DrugProcessor()
@@ -609,11 +612,12 @@ def main():
             """ASGI wrapper to improve compatibility with MCP HTTP clients.
 
             - Health endpoints at `/`, `/health`, `/status` (GET)
-            - Rewrite POST paths to root so clients posting to arbitrary paths still work
+            - Rewrite POST paths to the configured MCP endpoint
             """
 
             def __init__(self, app):
                 self.app = app
+                self.target_path = mcp.settings.streamable_http_path or "/"
 
             async def __call__(self, scope, receive, send):
                 if scope.get("type") != "http":
@@ -633,17 +637,46 @@ def main():
                     await response(scope, receive, send)
                     return
 
-                # Ensure POSTs hit the MCP root route
-                if method == "POST" and path not in ("/", "/mcp"):
-                    scope = dict(scope)
-                    scope["path"] = "/"
+                # Ensure POSTs hit the MCP route
+                if method == "POST":
+                    # Ensure clients missing Accept header remain compatible
+                    scope = self._ensure_accept_header(scope)
+
+                    if path != self.target_path:
+                        logger.debug(
+                            "HTTPCompatApp redirecting POST from %s to %s", path, self.target_path
+                        )
+                        scope = dict(scope)
+                        scope["path"] = self.target_path
+                        scope["raw_path"] = self.target_path.encode()
 
                 return await self.app(scope, receive, send)
 
-        app = HTTPCompatApp(inner_app)
+            def _ensure_accept_header(self, scope):
+                headers = list(scope.get("headers", []))
+                # Normalised required value
+                required = {"application/json", "text/event-stream"}
+                current = None
+                for idx, (name, value) in enumerate(headers):
+                    if name == b"accept":
+                        current = value.decode("latin-1").lower()
+                        existing = {part.strip() for part in current.split(",") if part.strip()}
+                        if required.issubset(existing):
+                            return scope
+                        new_value = ", ".join(sorted(required | existing))
+                        headers[idx] = (name, new_value.encode("latin-1"))
+                        scope = dict(scope)
+                        scope["headers"] = headers
+                        return scope
 
-        # CORS for cross-origin requests
-        app.add_middleware(
+                # No accept header present; append one
+                headers.append((b"accept", b"application/json, text/event-stream"))
+                scope = dict(scope)
+                scope["headers"] = headers
+                return scope
+
+        # Apply CORS directly to the underlying Starlette app
+        inner_app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
             allow_credentials=True,
@@ -652,6 +685,8 @@ def main():
             expose_headers=["mcp-session-id", "mcp-protocol-version"],
             max_age=86400,
         )
+
+        app = HTTPCompatApp(inner_app)
 
         # Inject Smithery config per-request
         app = SmitheryConfigMiddleware(app)
